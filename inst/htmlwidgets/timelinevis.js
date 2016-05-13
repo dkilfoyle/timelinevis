@@ -6,14 +6,37 @@ HTMLWidgets.widget({
 
   factory: function(el, width, height) {
 
-    // TODO: define shared variables for this instance
+    // define shared variables for this instance
+    var timeline = new vis.Timeline(el);
+    var items;
+    var groups;
+    var options = {};
 
     return {
 
       renderValue: function(x) {
 
-        // TODO: code to render the widget, e.g.
-        el.innerText = x.message;
+        // Create a DataSet (allows two way data-binding)
+        items = new vis.DataSet(x.items);
+
+        // Configuration for the Timeline
+        options = x.options;
+
+        timeline.setItems(items);
+        timeline.setOptions(options);
+
+        if (x.groups) {
+           groups = new vis.DataSet(x.groups);
+           timeline.setGroups(groups);
+        }
+
+        timeline.fit();
+
+        timeline.on('select', function (properties) {
+          selectedItem = properties.items[0];
+          console.log("Selected Item", selectedItem);
+          Shiny.onInputChange("tlSelectEvent", items.get(selectedItem));
+        });
 
       },
 

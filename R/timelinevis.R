@@ -1,16 +1,23 @@
-#' <Add Title>
+#' Create a timelinevis widget
 #'
-#' <Add Description>
+#' Send a dataframe containing timeline entries to the javascript widget
+#'
+#' @param items a dataframe that will be converted into a timelinejs DataSet.
+#'   Each row will be one timeline entry.
+#'   See vis.js documentation for valid column names
+#'
+#' @examples
+#' items=data.frame(content=c("item1","item2"), start=c("2013-04-02","2013-04-14"))
+#' timelinevis(items)
 #'
 #' @import htmlwidgets
 #'
 #' @export
-timelinevis <- function(message, width = NULL, height = NULL) {
+timelinevis <- function(items, groups=NULL, editable=F, width = NULL, height = NULL) {
 
   # forward options using x
-  x = list(
-    message = message
-  )
+  x = list(items=items, groups=groups, options=list(editable=editable))
+  attr(x, 'TOJSON_ARGS') <- list(dataframe = "rows")
 
   # create widget
   htmlwidgets::createWidget(
@@ -39,7 +46,7 @@ timelinevis <- function(message, width = NULL, height = NULL) {
 #' @name timelinevis-shiny
 #'
 #' @export
-timelinevisOutput <- function(outputId, width = '100%', height = '400px'){
+timelinevisOutput <- function(outputId, width = '100%', height = 'auto'){
   htmlwidgets::shinyWidgetOutput(outputId, 'timelinevis', width, height, package = 'timelinevis')
 }
 
