@@ -13,13 +13,13 @@
 #' @import htmlwidgets
 #'
 #' @export
-timelinevis <- function(items, groups=NULL,
+timelinevis <- function(items, groups=NULL, id=NULL,
                         editable=F,
                         zoomMin = 24*60*60*1000, # milliseconds
                         width = NULL, height = NULL) {
 
   # forward options using x
-  x = list(items=items, groups=groups, options=list(editable=editable, zoomMin=zoomMin))
+  x = list(id=id, items=items, groups=groups, options=list(editable=editable, zoomMin=zoomMin))
   attr(x, 'TOJSON_ARGS') <- list(dataframe = "rows")
 
   # create widget

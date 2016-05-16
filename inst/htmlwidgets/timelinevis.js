@@ -11,10 +11,14 @@ HTMLWidgets.widget({
     var items;
     var groups;
     var options = {};
+    var id;
 
     return {
 
       renderValue: function(x) {
+
+        if (x.id)
+          id = x.id;
 
         // Create a DataSet (allows two way data-binding)
         items = new vis.DataSet(x.items);
@@ -35,7 +39,7 @@ HTMLWidgets.widget({
         timeline.on('select', function (properties) {
           selectedItem = properties.items[0];
           console.log("Selected Item", selectedItem);
-          Shiny.onInputChange("tlSelectEvent", list(id=x.id, items=items.get(selectedItem)));
+          Shiny.onInputChange("tlSelectEvent", {id:id, items:items.get(selectedItem)});
         });
 
       },

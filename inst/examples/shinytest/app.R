@@ -122,7 +122,7 @@ server <- shinyServer(function(input, output, session) {
       mutate(content = Type, start = DueDate, group = NHI, id = EventId)
 
     groups = data.frame(id = unique(items$NHI), content = unique(items$NHI))
-    timelinevis(items, groups)
+    timelinevis(items, groups, id="evtsTimeline")
   })
 
   output$editTimeline <- renderTimelinevis({
