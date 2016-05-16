@@ -35,7 +35,7 @@ HTMLWidgets.widget({
         timeline.on('select', function (properties) {
           selectedItem = properties.items[0];
           console.log("Selected Item", selectedItem);
-          Shiny.onInputChange("tlSelectEvent", items.get(selectedItem));
+          Shiny.onInputChange("tlSelectEvent", list(id=x.id, items=items.get(selectedItem)));
         });
 
       },

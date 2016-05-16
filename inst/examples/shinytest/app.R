@@ -3,11 +3,17 @@
 library(shiny)
 library(rhandsontable)
 library(dplyr)
+library(lubridate)
+library(stringr)
 
 msdata = read.csv("events.csv", stringsAsFactors = F)
 msdata$DueDate = dmy(msdata$DueDate)
 
-ui <- shinyUI(navbarPage("MS Monitoring Program",
+ui <- shinyUI(
+
+  navbarPage("MS Monitoring Program",
+
+  # includeCSS("www/msdata.css"), #TODO FIX
 
   tabPanel("Events",
            sidebarLayout(
@@ -17,11 +23,13 @@ ui <- shinyUI(navbarPage("MS Monitoring Program",
                  radioButtons("evtsTimeframe", "Timeframe", choices = c("All Pending", "This week", "Next 6 weeks", "Next 3 months", "Overdue", "Completed"))),
 
                inputPanel(h3("Selected Event"),
-                 dateInput("startDate", "Start Date"),
-                 textInput("type", "Type"),
-                 checkboxInput("completed", "Completed"))
+                 textInput("evtsStartDate", "Due Date"),
+                 textInput("evtsType", "Type"),
+                 textInput("evtsComment", "Comment"),
+                 textInput("evtsCompleted", "Completed"),
+                 textInput("evtsResult", "Result"))
              ),
-             mainPanel(timelinevisOutput("timeline"))
+             mainPanel(timelinevisOutput("evtsTimeline"))
            )),
   tabPanel("Add Patient",
            sidebarLayout(
@@ -30,11 +38,21 @@ ui <- shinyUI(navbarPage("MS Monitoring Program",
              ),
              mainPanel(timelinevisOutput("addptTimeline"))
            )),
-  tabPanel("Edit Patient",
+  tabPanel("Edit Events",
            sidebarLayout(
              sidebarPanel(
-               textInput("editSearchNHI", "Search NHI:")
-             ),
+               inputPanel(
+                 textInput("editSearchNHI", "Search NHI:")),
+               inputPanel(
+                 dateInput("editDueDate", "Due Date", ""),
+                 textInput("editType", "Type"),
+                 textInput("editComment", "Comment"),
+                 actionButton("editCompletedButton", "Mark as Completed"),
+                 dateInput("editCompleted", "Completed", ""),
+                 textInput("editResult", "Result"),
+                 actionButton("editGenerateNew", "Generate new event")
+               ),
+               actionButton("editSaveChanges","Save Changes")),
              mainPanel(
                timelinevisOutput("editTimeline"),
                rHandsontableOutput("editHOT"))
@@ -58,18 +76,27 @@ server <- shinyServer(function(input, output, session) {
 
   observe({
     x = input$tlSelectEvent
+    if (is.null(x)) return()
     cat(str(x))
-    updateDateInput(session, "startDate", value = x$start)
+    if (x$id == "evtsTimeline") {
+      updateTextInput(session, "evtsStartDate", value = x$items$start)
+      updateTextInput(session, "evtsType", value=x$items$Type)
+      updateTextInput(session, "evtsResult", value=x$items$Result)
+      updateTextInput(session, "evtsComment", value=x$itmes$Comment)
+      updateTextInput(session, "evtsCompleted", value=x$items$Completed)
+    }
   })
 
 
 
-  output$timeline <- renderTimelinevis({
+  output$evtsTimeline <- renderTimelinevis({
     items = values$msdata
-    item = items %>%
-      filter(NHI == toupper(input$evtsSearchNHI))
 
-    cat(input$evtsTimeFrame)
+    nhi = toupper(input$evtsSearchNHI)
+    if (str_length(nhi)==7) {
+      items = items %>%
+        filter(NHI == nhi)
+    }
 
     endDate = switch(input$evtsTimeframe,
            "All Pending" = ymd("2100/01/01"),
@@ -79,10 +106,17 @@ server <- shinyServer(function(input, output, session) {
            ymd("2100/01/01"))
     endDate = as_date(endDate)
 
-    cat(endDate,"\n")
-
-    items = items %>%
-      filter(DueDate > today(), DueDate < endDate)
+    if (input$evtsTimeframe == "Overdue") {
+      items = items %>%
+        filter(DueDate < today(), is.na(Completed))
+    } else if (input$evtsTimeframe == "Completed") {
+      items = items %>%
+        filter(!is.na(Completed))
+    } else
+    {
+      items = items %>%
+        filter(DueDate > today(), DueDate < endDate, is.na(Completed))
+    }
 
     items = items %>%
       mutate(content = Type, start = DueDate, group = NHI, id = EventId)
