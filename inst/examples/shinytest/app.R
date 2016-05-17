@@ -32,11 +32,19 @@ ui <- shinyUI(
                    radioButtons("evtsTimeframe", "Timeframe", choices = c("All Pending", "This week", "Next 6 weeks", "Next 3 months", "Overdue", "Completed"))
                   ),
                  bsCollapsePanel("Selected Event",
-                   textInput("evtsStartDate", "Due Date"),
+                   dateInput("evtsStartDate", "Due Date", ""),
                    textInput("evtsType", "Type"),
                    textareaInput("evtsComment", "Comment"),
-                   textInput("evtsCompleted", "Completed"),
-                   textareaInput("evtsResult", "Result")
+                   dateInput("evtsCompleted", "Date Completed", ""),
+                   textareaInput("evtsResult", "Result"),
+
+                   div(class="btn-group-vertical", role="group", style="width:100%",
+                     actionButton("evtsCompletedButton", "Mark as Completed"),
+                     actionButton("evtsGenerateNew", "Generate new event"),
+                     actionButton("evtsSaveChanges","Save Changes")
+                   )
+
+
                  ),
                  id="evtsCollapse", multiple=T, open="Filter Events"
                )
