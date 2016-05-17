@@ -5,9 +5,17 @@ library(rhandsontable)
 library(dplyr)
 library(lubridate)
 library(stringr)
+library(shinyBS)
 
 msdata = read.csv("events.csv", stringsAsFactors = F)
 msdata$DueDate = dmy(msdata$DueDate)
+
+textareaInput <- function(id, label, value="", rows=5, cols=20, class="form-control"){
+  tags$div(
+    class="form-group shiny-input-container",
+    tags$label('for'=id,label),
+    tags$textarea(id=id,class=class,rows=rows,cols=cols,value))
+}
 
 ui <- shinyUI(
 
@@ -18,18 +26,24 @@ ui <- shinyUI(
   tabPanel("Events",
            sidebarLayout(
              sidebarPanel(
-               inputPanel(h3("Filter Events"),
-                 textInput("evtsSearchNHI", "NHI", placeholder="Leave blank to search all"),
-                 radioButtons("evtsTimeframe", "Timeframe", choices = c("All Pending", "This week", "Next 6 weeks", "Next 3 months", "Overdue", "Completed"))),
-
-               inputPanel(h3("Selected Event"),
-                 textInput("evtsStartDate", "Due Date"),
-                 textInput("evtsType", "Type"),
-                 textInput("evtsComment", "Comment"),
-                 textInput("evtsCompleted", "Completed"),
-                 textInput("evtsResult", "Result"))
+               bsCollapse(
+                 bsCollapsePanel("Filter Events",
+                   textInput("evtsSearchNHI", "NHI", placeholder="Leave blank to search all"),
+                   radioButtons("evtsTimeframe", "Timeframe", choices = c("All Pending", "This week", "Next 6 weeks", "Next 3 months", "Overdue", "Completed"))
+                  ),
+                 bsCollapsePanel("Selected Event",
+                   textInput("evtsStartDate", "Due Date"),
+                   textInput("evtsType", "Type"),
+                   textareaInput("evtsComment", "Comment"),
+                   textInput("evtsCompleted", "Completed"),
+                   textareaInput("evtsResult", "Result")
+                 ),
+                 id="evtsCollapse", multiple=T, open="Filter Events"
+               )
              ),
-             mainPanel(timelinevisOutput("evtsTimeline"))
+             mainPanel(
+               timelinevisOutput("evtsTimeline")
+             )
            )),
   tabPanel("Add Patient",
            sidebarLayout(
@@ -79,6 +93,7 @@ server <- shinyServer(function(input, output, session) {
     if (is.null(x)) return()
     cat(str(x))
     if (x$id == "evtsTimeline") {
+      updateCollapse(session, "evtsCollapse", open="Selected Event", close="Filter Events")
       updateTextInput(session, "evtsStartDate", value = x$items$start)
       updateTextInput(session, "evtsType", value=x$items$Type)
       updateTextInput(session, "evtsResult", value=x$items$Result)
