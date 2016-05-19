@@ -25,6 +25,10 @@ HTMLWidgets.widget({
 
         // Configuration for the Timeline
         options = x.options;
+        options.onMove = function(item,callback) {
+          Shiny.onInputChange("tlMoveEvent", {id:id, item:item});
+          callback(item);
+        };
 
         timeline.setItems(items);
         timeline.setOptions(options);

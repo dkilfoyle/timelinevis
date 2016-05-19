@@ -5,6 +5,9 @@
 #' @param items a dataframe that will be converted into a timelinejs DataSet.
 #'   Each row will be one timeline entry.
 #'   See vis.js documentation for valid column names
+#' @param groups groups
+#' @param editable editable
+#' @param zoomMin minimum timeframe allowed on zooming x axis. Defaults to 1 day.
 #'
 #' @examples
 #' items=data.frame(content=c("item1","item2"), start=c("2013-04-02","2013-04-14"))
@@ -16,10 +19,11 @@
 timelinevis <- function(items, groups=NULL, id=NULL,
                         editable=F,
                         zoomMin = 24*60*60*1000, # milliseconds
+                        snap=NULL,
                         width = NULL, height = NULL) {
 
   # forward options using x
-  x = list(id=id, items=items, groups=groups, options=list(editable=editable, zoomMin=zoomMin))
+  x = list(id=id, items=items, groups=groups, options=list(editable=editable, zoomMin=zoomMin, snap=snap))
   attr(x, 'TOJSON_ARGS') <- list(dataframe = "rows")
 
   # create widget

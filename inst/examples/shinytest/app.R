@@ -140,6 +140,11 @@ server <- shinyServer(function(input, output, session) {
     }
   })
 
+  observe({
+    x=input$tlMoveEvent
+    updateDateInput(session, "evtsStartDate", value=x$item$start)
+  })
+
   observeEvent(input$evtsCompletedButton, {
     updateDateInput(session, "evtsCompleted", value=today())
   })
@@ -199,7 +204,7 @@ server <- shinyServer(function(input, output, session) {
   output$evtsTimeline <- renderTimelinevis({
     items = getFilteredEvents()
     groups = data.frame(id = unique(items$NHI), content = unique(items$NHI))
-    timelinevis(items, groups, id = "evtsTimeline")
+    timelinevis(items, groups, id = "evtsTimeline", editable=list(add=F,updateGroup=F,updateTime=T,remove=F), snap=NULL)
   })
 
   output$evtsTable <- renderRHandsontable({
