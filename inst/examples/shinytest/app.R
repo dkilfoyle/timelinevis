@@ -1,6 +1,3 @@
-
-
-
 library(shiny)
 library(rhandsontable)
 library(dplyr)
@@ -8,9 +5,12 @@ library(lubridate)
 library(stringr)
 library(shinyBS)
 
-msdata = read.csv("events.csv", stringsAsFactors = F)
-msdata$DueDate = dmy(msdata$DueDate)
-msdata$Completed = dmy(msdata$Completed)
+msevents = read.csv("events.csv", stringsAsFactors = F)
+msevents$DueDate = ymd(msevents$DueDate)
+msevents$Completed = ymd(msevents$Completed)
+
+mspts = read.csv("patients.csv", stringsAsFactors = F)
+mspts$DateStarted = ymd(mspts$DateStarted)
 
 textareaInput <-
   function(id,
@@ -44,7 +44,7 @@ ui <- shinyUI(navbarPage(
   tabPanel("Events",
     sidebarLayout(
       sidebarPanel(
-        includeCSS("www/msdata.css"),
+        includeCSS("www/msmonitor.css"),
         bsCollapse(
           bsCollapsePanel(
             "Filter Events",
@@ -93,26 +93,32 @@ ui <- shinyUI(navbarPage(
       )
     )),
   tabPanel("Patients",
-    sidebarLayout(
-      sidebarPanel(actionButton("ptsAddPatient", "Add Patient")),
-      mainPanel(rHandsontableOutput("ptsTable"))
-    ))
+    DT::dataTableOutput("ptsTable"),
+    tags$hr(),
+
+    fluidRow(
+      column(width=6,
+        textInput("ptsNHI", "NHI", ""),
+        textInput("ptsSurname", "Surname", ""),
+        textInput("ptsFirstName", "First Name", "")
+      ),
+      column(width=6,
+        selectInput("ptsDrug", "Drug", choices=c("Tecfidera","Natalizumab","Fingolimod","Interferon"),selected=""),
+        dateInput("ptsDateStarted","Date Started","")
+      )
+    ),
+
+    #action buttons
+    actionButton("ptsSave", "Save"),
+    actionButton("ptsNew", "New"),
+    actionButton("ptsDelete", "Delete")
+  ),
+  tabPanel("Setup")
 ))
 
 server <- shinyServer(function(input, output, session) {
-  values = reactiveValues(msdata = msdata)
 
-  observeEvent(input$addpt, {
-    newrow = data.frame(
-      EventId = max(values$msdata$EventId) + 1,
-      NHI = "ACJ2321",
-      Type = "MRI",
-      Number = 1,
-      DueDate = dmy("1/23/2016"),
-      Completed = F
-    )
-    values$msdata = rbind(values$msdata, newrow)
-  })
+  values = reactiveValues(msevents = msevents, mspts = mspts)
 
   # detect event selection
   observe({
@@ -134,22 +140,21 @@ server <- shinyServer(function(input, output, session) {
     }
   })
 
-
   observeEvent(input$evtsCompletedButton, {
     updateDateInput(session, "evtsCompleted", value=today())
   })
 
   observeEvent(input$evtsSaveChanges, {
-    saveRow = which(values$msdata$EventId == input$evtsId)
-    values$msdata[saveRow, "DueDate"] = input$evtsStartDate
-    values$msdata[saveRow, "Type"] = input$evtsType
-    values$msdata[saveRow, "Result"] = input$evtsResult
-    values$msdata[saveRow, "Completed"] = input$evtsCompleted
-    values$msdata[saveRow, "Comment"] = input$evtsComment
+    saveRow = which(values$msevents$EventId == input$evtsId)
+    values$msevents[saveRow, "DueDate"] = input$evtsStartDate
+    values$msevents[saveRow, "Type"] = input$evtsType
+    values$msevents[saveRow, "Result"] = input$evtsResult
+    values$msevents[saveRow, "Completed"] = input$evtsCompleted
+    values$msevents[saveRow, "Comment"] = input$evtsComment
   })
 
   getFilteredEvents = reactive({
-    items = values$msdata
+    items = values$msevents
 
     nhi = toupper(input$evtsSearchNHI)
     if (str_length(nhi) == 7) {
@@ -200,6 +205,53 @@ server <- shinyServer(function(input, output, session) {
   output$evtsTable <- renderRHandsontable({
     items = getFilteredEvents()
     rhandsontable(items)
+  })
+
+  observeEvent(input$addpt, {
+    newrow = data.frame(
+      EventId = max(values$msevents$EventId) + 1,
+      NHI = "ACJ2321",
+      Type = "MRI",
+      Number = 1,
+      DueDate = dmy("1/23/2016"),
+      Completed = F
+    )
+    values$msevents = rbind(values$msevents, newrow)
+  })
+
+  output$ptsTable = DT::renderDataTable(values$mspts, options = list(
+    lengthChange=F,
+    order=list(list(1,"asc")),
+    paging=F,
+    info=F), selection="single", class = 'cell-border stripe')
+
+  observe({
+    if (length(input$ptsTable_rows_selected) > 0) {
+      selrow = values$mspts[input$ptsTable_rows_selected,]
+      updateTextInput(session, "ptsNHI", value = selrow$NHI)
+      updateTextInput(session, "ptsFirstName", value = selrow$FirstName)
+      updateTextInput(session, "ptsSurname", value = selrow$Surname)
+      updateSelectInput(session, "ptsDrug", selected = selrow$Drug)
+      updateDateInput(session, "ptsDateStarted", value = selrow$DateStarted)
+    }
+  })
+
+  observeEvent(input$ptsNew, {
+    updateTextInput(session, "ptsNHI", value = "Enter details")
+    updateTextInput(session, "ptsFirstName", value = "then")
+    updateTextInput(session, "ptsSurname", value = "click save")
+    updateSelectInput(session, "ptsDrug", selected = "")
+    updateDateInput(session, "ptsDateStarted", value = "")
+  })
+
+  observeEvent(input$ptsSave, {
+    saveRow = which(values$mspts$NHI == input$ptsNHI)
+    newRow = list(NHI=input$ptsNHI, Surname=input$ptsSurname, FirstName=input$ptsFirstName, Drug=input$ptsDrug, DateStarted=input$ptsDateStarted)
+
+    if (length(saveRow)==0) # new entry
+      values$mspts = rbind(values$mspts, newRow)
+    else
+      values$mspts[saveRow,] = newRow
   })
 
 })
