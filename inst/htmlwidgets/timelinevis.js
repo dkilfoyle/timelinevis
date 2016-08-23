@@ -46,14 +46,22 @@ HTMLWidgets.widget({
           Shiny.onInputChange("tlSelectEvent", {id:id, items:items.get(selectedItem)});
         });
 
+
       },
 
       resize: function(width, height) {
-
         // TODO: code to re-render the widget with a new size
+      },
 
-      }
+      tl: timeline // return instance variable
 
     };
   }
+});
+
+Shiny.addCustomMessageHandler('timeline-select', function(data) {
+  var id = data.elid;
+  var el = document.getElementById(id);
+  var timeline = HTMLWidgets.getInstance(el).tl;
+  timeline.setSelection(data.itemid, {focus: true});
 });
